@@ -25,7 +25,7 @@ app.command("/delilah6312-pong", async ({ command, ack, respond }) => {
 app.command("/delilah6312-help", async ({ ack, respond }) => {
   await ack();
   await respond({
-    text: `Available Commands:\n/delilah6312-pong - Check bot latency\n/delilah6312-catfact - Get a cat fact\n/delilah6312-joke - Get a joke`
+    text: `Available Commands:\n/delilah6312-pong - Check bot latency\n/delilah6312-catfact - Get a cat fact\n/delilah6312-joke - Get a joke\n/delilah6312-dadjoke - Get a dad joke\n/delilah6312-foodpicture - Get a food picture`
   });
 });
 
@@ -55,7 +55,38 @@ app.command("/delilah6312-joke", async ({ ack, respond }) => {
   }
 });
 
+app.command("/delilah6312-dadjoke", async ({ ack, respond }) => {
+  console.log("/delilah6312-dadjoke command received");
+  await ack();
+
+  try {
+    const response = await axios.get("https://icanhazdadjoke.com/", {
+      headers: { Accept: "application/json" }
+    });
+    console.log("dadjoke response", response.status, response.data);
+    await respond({ text: response.data.joke });
+  } catch (err) {
+    console.error("Dad joke fetch failed", err && err.stack ? err.stack : err);
+    await respond({ text: "Failed to fetch a dad joke." });
+  }
+});
+
+app.command("/delilah6312-foodpicture", async ({ ack, respond }) => {
+  console.log("/delilah6312-foodpicture command received");
+  await ack();
+
+  try {
+    const response = await axios.get("https://foodish-api.com/api/images/burger");
+    console.log("foodpicture response", response.status, response.data);
+    await respond({ text: `Food picture:\n${response.data.image}` });
+  } catch (err) {
+    console.error("Food picture fetch failed", err && err.stack ? err.stack : err);
+    await respond({ text: "Failed to fetch a picture of food." });
+  }
+});
+
 (async () => {
   await app.start();
   console.log("bot is running!");
 })();
+
