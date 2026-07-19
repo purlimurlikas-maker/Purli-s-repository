@@ -133,15 +133,25 @@ app.command("/delilah6312-pong", async ({ ack, respond }) => {
 // Help
 app.command("/delilah6312-help", async ({ ack, respond }) => {
   ack();
-  const helpText = `Available commands:\n` +
-    `/delilah6312-pong - simple pong reply\n` +
-    `/delilah6312-help - this help message\n` +
-    `/delilah6312-catfact - random cat fact\n` +
-    `/delilah6312-joke - random joke\n` +
-    `/delilah6312-dadjoke - dad joke\n` +
-    `/delilah6312-duckpicture - random duck image\n` +
-    `/delilah6312-jellybelly - jelly belly fact`;
-  await respond({ response_type: "ephemeral", text: helpText });
+  await respond({
+    response_type: "ephemeral",
+    blocks: [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "*Available Commands:*"
+        }
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "`/delilah6312-pong` - simple pong reply\n`/delilah6312-help` - this help message\n`/delilah6312-catfact` - random cat fact\n`/delilah6312-joke` - random joke\n`/delilah6312-dadjoke` - dad joke\n`/delilah6312-duckpicture` - random duck image\n`/delilah6312-jellybelly` - jelly belly fact"
+        }
+      }
+    ]
+  });
 });
 
 // Cat fact
