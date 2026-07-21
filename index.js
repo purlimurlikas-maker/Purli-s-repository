@@ -2,7 +2,17 @@ const axios = require("axios");
 require("dotenv").config();
 
 const { App } = require("@slack/bolt");
-// Initialize the Bolt App (socket mode)
+
+if (
+  !process.env.SLACK_BOT_TOKEN ||
+  !process.env.SLACK_APP_TOKEN ||
+  process.env.SLACK_BOT_TOKEN.includes("your_") ||
+  process.env.SLACK_APP_TOKEN.includes("your_")
+) {
+  console.error("Slack credentials are missing or still set to placeholder values. Update your .env file with real tokens.");
+  process.exit(1);
+}
+
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   appToken: process.env.SLACK_APP_TOKEN,
@@ -10,13 +20,21 @@ const app = new App({
 });
 
 const { getDuckImageUrl } = require("./duckPicture");
+const { formatDadJokeText } = require("./dadJoke");
 
 async function sendSlashResponse(responseUrl, payload) {
   try {
-    await axios.post(responseUrl, payload, { timeout: 5000 });
+    await axios.post(responseUrl, payload, { timeout: 2000 });
   } catch (err) {
     console.warn("sendSlashResponse failed", err && err.toString ? err.toString() : err);
   }
+}
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms))
+  ]);
 }
 const jellybellyFacts = [
   "Jelly Belly beans were the first jelly beans in space, sent on the 1983 Challenger mission.",
@@ -113,27 +131,26 @@ const jellybellyFacts = [
   "The Jelly Belly Factory in Fairfield, California, offers tours where visitors can see the production process, view jelly bean mosaics, and purchase Jelly Belly products in the gift shop."
 ];
 
-app.command("/delilah6312-jellybelly", async ({ ack, respond, command }) => {
-  ack();
+app.command("/delilah6312-jellybelly", async ({ ack, command }) => {
+  console.log("[jellybelly] command triggered");
+  await ack();
+  console.log("[jellybelly] ack sent");
   const randomFact = jellybellyFacts[Math.floor(Math.random() * jellybellyFacts.length)];
-  try {
-    await respond({ response_type: "ephemeral", text: `Jelly Belly fact:\n${randomFact}` });
-  } catch (err) {
-    console.warn('respond() failed for jellybelly, falling back to response_url', err && err.toString ? err.toString() : err);
-    await sendSlashResponse(command.response_url, { text: `Jelly Belly fact:\n${randomFact}` });
-  }
+  console.log("[jellybelly] sending response");
+  await sendSlashResponse(command.response_url, { text: `Jelly Belly fact:\n${randomFact}` });
+  console.log("[jellybelly] response sent");
 });
 
 // Pong
-app.command("/delilah6312-pong", async ({ ack, respond }) => {
-  ack();
-  await respond({ response_type: "ephemeral", text: "Pong!" });
+app.command("/delilah6312-pong", async ({ ack, command }) => {
+  await ack();
+  await sendSlashResponse(command.response_url, { text: "Pong!" });
 });
 
 // Help
-app.command("/delilah6312-help", async ({ ack, respond }) => {
-  ack();
-  await respond({
+app.command("/delilah6312-help", async ({ ack, command }) => {
+  await ack();
+  await sendSlashResponse(command.response_url, {
     response_type: "ephemeral",
     blocks: [
       {
@@ -155,49 +172,68 @@ app.command("/delilah6312-help", async ({ ack, respond }) => {
 });
 
 // Cat fact
-app.command("/delilah6312-catfact", async ({ ack, respond }) => {
-  ack();
+app.command("/delilah6312-catfact", async ({ ack, command }) => {
+  await ack();
   try {
-    const res = await axios.get("https://catfact.ninja/fact", { timeout: 5000 });
+    const res = await withTimeout(axios.get("https://catfact.ninja/fact", { timeout: 2000 }), 2000);
     const fact = res.data && res.data.fact ? res.data.fact : "Couldn't fetch a cat fact.";
-    await respond({ response_type: "ephemeral", text: fact });
+    await sendSlashResponse(command.response_url, { text: fact });
   } catch (err) {
-    await respond({ response_type: "ephemeral", text: "Failed to fetch cat fact." });
+    await sendSlashResponse(command.response_url, { text: "Failed to fetch cat fact." });
   }
 });
 
 // Joke
-app.command("/delilah6312-joke", async ({ ack, respond }) => {
-  ack();
+app.command("/delilah6312-joke", async ({ ack, command }) => {
+  await ack();
   try {
-    const res = await axios.get("https://official-joke-api.appspot.com/random_joke", { timeout: 5000 });
+    const res = await withTimeout(axios.get("https://official-joke-api.appspot.com/random_joke", { timeout: 2000 }), 2000);
     const joke = res.data && res.data.setup ? `${res.data.setup} — ${res.data.punchline}` : "Couldn't fetch a joke.";
-    await respond({ response_type: "ephemeral", text: joke });
+    await sendSlashResponse(command.response_url, { text: joke });
   } catch (err) {
-    await respond({ response_type: "ephemeral", text: "Failed to fetch a joke." });
+    await sendSlashResponse(command.response_url, { text: "Failed to fetch a joke." });
   }
 });
 
 // Dad joke
-app.command("/delilah6312-dadjoke", async ({ ack, respond }) => {
-  ack();
-  try {
-    const res = await axios.get("https://icanhazdadjoke.com/", { headers: { Accept: "application/json" }, timeout: 5000 });
-    const joke = res.data && res.data.joke ? res.data.joke : "Couldn't fetch a dad joke.";
-    await respond({ response_type: "ephemeral", text: joke });
+app.command("/delilah6312-dadjoke", async ({ ack, command }) => {
+  console.log("[dadjoke] command triggered");
+  await ack();
+  console.log("[dadjoke] ack sent");
+
+  try { 
+    console.log("[dadjoke] fetching from API");
+    const response = await withTimeout(axios.get("https://icanhazdadjoke.com/", {
+      headers: { Accept: "application/json" },
+      timeout: 2000
+    }), 2000);
+    console.log("[dadjoke] API response received");
+    const jokeText = formatDadJokeText(response.data);
+    
+    console.log("[dadjoke] sending response");
+    await sendSlashResponse(command.response_url, {
+      response_type: "ephemeral",
+      text:jokeText
+    });
+    console.log("[dadjoke] response sent");
   } catch (err) {
-    await respond({ response_type: "ephemeral", text: "Failed to fetch a dad joke." });
+    console.warn("[dadjoke] caught error:", err && err.toString ? err.toString() : err);
+    await sendSlashResponse(command.response_url, {
+      response_type: "ephemeral",
+      text: "Failed to fetch a dad joke."
+    });
   }
 });
 
 // Duck picture - uses response_url to avoid not_in_channel
 app.command("/delilah6312-duckpicture", async ({ ack, command }) => {
-  ack();
+  await ack();
   let imageUrl = null;
+  
   try {
     // Try random-d.uk
     try {
-      const r = await axios.get(`https://random-d.uk/api/random?cachebuster=${Math.random()}`, { timeout: 7000 });
+      const r = await withTimeout(axios.get(`https://random-d.uk/api/random?cachebuster=${Math.random()}`, { timeout: 2000 }), 2000);
       if (r.data && r.data.url) imageUrl = r.data.url;
     } catch (e) {
       // continue to next
@@ -206,7 +242,7 @@ app.command("/delilah6312-duckpicture", async ({ ack, command }) => {
     // Try some-random-api.ml
     if (!imageUrl) {
       try {
-        const r2 = await axios.get("https://some-random-api.ml/img/duck", { timeout: 7000 });
+        const r2 = await withTimeout(axios.get("https://some-random-api.ml/img/duck", { timeout: 2000 }), 2000);
         if (r2.data && r2.data.link) imageUrl = r2.data.link;
       } catch (e) {}
     }
@@ -214,7 +250,7 @@ app.command("/delilah6312-duckpicture", async ({ ack, command }) => {
     // Final fallback: DuckDuckGo instant answer JSON
     if (!imageUrl) {
       try {
-        const dd = await axios.get("https://api.duckduckgo.com/", { params: { q: "duck", format: "json" }, timeout: 10000 });
+        const dd = await withTimeout(axios.get("https://api.duckduckgo.com/", { params: { q: "duck", format: "json" }, timeout: 2000 }), 2000);
         imageUrl = getDuckImageUrl(dd.data);
       } catch (err) {
         console.warn("DuckDuckGo fallback failed", err && err.toString ? err.toString() : err);
