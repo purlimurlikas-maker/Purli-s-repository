@@ -2,7 +2,7 @@
 # Purli-s-repository
 Slack Bot Delilah6312 - a Slack Bot that replies to commands 24/7.
 
-Delilah6312 has 7 commands: /delilah6312-pong - Check bot latency, /delilah6312-catfact - Get a cat fact, /delilah6312-joke - Get a joke, /delilah6312-dadjoke - Get a dad joke, /delilah6312-duckpicture - Get a duck picture, /delilah6312-jellybelly - get a fact about JellyBellies and /delilah6312-help - says available commands.
+Delilah6312 has 4 commands: /delilah6312-pong - Check bot latency, /delilah6312-catfact - Get a cat fact, /delilah6312-joke - Get a joke, and /delilah6312-help - says available commands.
 
 <img width="406" height="228" alt="Screenshot 2026-07-21 at 16 00 34" src="https://github.com/user-attachments/assets/02a5162c-2a14-41ee-be53-46bbcc7666e4" />
 
