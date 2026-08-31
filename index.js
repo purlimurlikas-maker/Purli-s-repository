@@ -19,6 +19,13 @@ const app = new App({
   socketMode: true,
 });
 
+// Minimal HTTP server for platform health checks (keeps the process alive on hosts like Nest)
+const express = require('express');
+const server = express();
+const PORT = process.env.PORT || 3000;
+server.get('/', (_req, res) => res.send('OK'));
+server.listen(PORT, () => console.log(`HTTP server listening on ${PORT}`));
+
 const { getDuckImageUrl } = require("./duckPicture");
 const { formatDadJokeText } = require("./dadJoke");
 
@@ -194,6 +201,7 @@ app.command("/delilah6312-joke", async ({ ack, command }) => {
     await sendSlashResponse(command.response_url, { text: "Failed to fetch a joke." });
   }
 });
+
 
 // Dad joke
 app.command("/delilah6312-dadjoke", async ({ ack, command }) => {
